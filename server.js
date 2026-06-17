@@ -17,8 +17,20 @@ const app = express();
 app.use(helmet()); 
 
 // CORS configuration - Only allow requests from your specific Vercel frontend domain
+const allowedOrigins = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : [];
+
+// CORS configuration - Only allow requests from your dynamic environment array
 app.use(cors({
-    origin: process.env.CLIENT_URL, 
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like Postman or local curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true); // Origin is allowed
+        } else {
+            callback(new Error('Not allowed by CORS')); // Origin is blocked
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
