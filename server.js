@@ -81,4 +81,9 @@ if (require.main === module) {
         console.log(`Server is actively running on port ${PORT}`);
     });
 }
+
+app.get('/', (req, res) => {
+    res.send("Backend API is running successfully on Vercel!");
+});
+
 module.exports = app;
