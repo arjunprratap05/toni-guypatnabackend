@@ -18,11 +18,17 @@ exports.createAppointment = async (req, res, next) => {
             timeSlot
         });
 
-        // 2. Trigger WhatsApp Message Notification
+        // 2. Trigger WhatsApp Message Notifications (Client + Staff)
         try {
+            // Send confirmation to the client
             await whatsappService.sendBookingConfirmation(userId, clientName, date, timeSlot);
+            
+            // Send real-time update to the salon staff
+            if (typeof whatsappService.notifySalonStaff === 'function') {
+                await whatsappService.notifySalonStaff(clientName, date, timeSlot);
+            }
         } catch (waError) {
-            // THIS LINE IS CRITICAL: It prints Meta's exact error message (e.g., "Number not verified")
+            // THIS LINE IS CRITICAL: It prints Meta's exact error message if anything fails
             console.error("Meta Error:", waError.response?.data || waError.message);
             console.error("WhatsApp notification failed, but booking succeeded.");
         }

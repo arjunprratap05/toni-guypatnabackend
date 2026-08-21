@@ -17,27 +17,37 @@ exports.sendBookingConfirmation = async (clientPhone, clientName, date, timeSlot
     const payload = {
         messaging_product: "whatsapp",
         to: formattedPhone,
-        type: "template",
         template: {
-            name: "booking_confirmation", // Ensure this matches your Meta template name exactly
+            name: "booking_confirmation_us",
             language: {
-                code: "en_US" // Change to "hi" if your template was approved in Hindi
+                code: "en_US" 
             },
             components: [
                 {
-                    type: "body",
+                    type: "header",
                     parameters: [
                         {
                             type: "text",
-                            text: clientName || "Valued Client" // Maps to {{1}}
-                        },
+                            text: "Booking Confirmed!"
+                        }
+                    ]
+                },
+                {
+                    type: "body",
+                    parameters: [
+                        { type: "text", text: clientName || "Valued Client" }, // {{1}}
+                        { type: "text", text: date },       // {{2}}
+                        { type: "text", text: timeSlot }    // {{3}}
+                    ]
+                },
+                {
+                    type: "button",
+                    sub_type: "url",
+                    index: "0",
+                    parameters: [
                         {
                             type: "text",
-                            text: date // Maps to {{2}}
-                        },
-                        {
-                            type: "text",
-                            text: timeSlot // Maps to {{3}}
+                            text: ""
                         }
                     ]
                 }
@@ -48,7 +58,7 @@ exports.sendBookingConfirmation = async (clientPhone, clientName, date, timeSlot
     // 3. Fire the request
     const response = await axios.post(url, payload, {
         headers: {
-            'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+            'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
             'Content-Type': 'application/json'
         }
     });
@@ -83,21 +93,19 @@ exports.sendBulkMessages = async (customers, templateName) => {
                 type: "template",
                 template: {
                     name: templateName, 
-                    language: { code: "en_US" },
-                    // If your marketing template has variables (like their name), add components here
+                    language: { code: "en_US" }
                 }
             };
 
             return axios.post(url, payload, {
                 headers: {
-                    'Authorization': `Bearer ${process.env.WHATSAPP_TOKEN}`,
+                    'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
                     'Content-Type': 'application/json'
                 }
             });
         });
 
-        // Execute the batch of 20 concurrently and wait for them all to finish
-        // We use allSettled instead of all() so one failure doesn't crash the whole batch
+        // Execute the batch concurrently and wait for them to finish
         const results = await Promise.allSettled(batchPromises);
 
         // Tally up the successes and failures
@@ -113,7 +121,7 @@ exports.sendBulkMessages = async (customers, templateName) => {
             }
         });
 
-        // Wait 1 second before sending the next batch to keep Meta happy
+        // Wait 1 second before sending the next batch
         if (i + BATCH_SIZE < customers.length) {
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
         }
@@ -121,4 +129,44 @@ exports.sendBulkMessages = async (customers, templateName) => {
 
     console.log(`Bulk send complete. Success: ${successCount}, Failed: ${failCount}`);
     return { successCount, failCount, failedNumbers };
+};
+
+/**
+ * Send booking alert to Salon Staff
+ */
+exports.notifySalonStaff = async (clientName, date, timeSlot) => {
+    const staffPhone = process.env.SALON_STAFF_PHONE;
+    
+    const url = `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_ID}/messages`;
+
+    const payload = {
+        messaging_product: "whatsapp",
+        to: staffPhone,
+        type: "template",
+        template: {
+            name: "booking_confirmation_us",
+            language: { code: "en_US" },
+            components: [
+                {
+                    type: "header",
+                    parameters: [{ type: "text", text: "New Booking Alert!" }] // Header for staff
+                },
+                {
+                    type: "body",
+                    parameters: [
+                        { type: "text", text: clientName },
+                        { type: "text", text: date },
+                        { type: "text", text: timeSlot }
+                    ]
+                }
+            ]
+        }
+    };
+
+    return axios.post(url, payload, {
+        headers: {
+            'Authorization': `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json'
+        }
+    });
 };
