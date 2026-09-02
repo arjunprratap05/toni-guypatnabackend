@@ -83,3 +83,37 @@ exports.fetchBookedSlots = async (stylistId, date) => {
 
     return appointments.map(app => app.timeSlot);
 };
+
+exports.fetchAllBookings = async () => {
+    // Fetch all appointments from MongoDB
+    // .sort({ createdAt: -1 }) ensures the most recently booked appointments show up first in the table
+    const bookings = await Appointment.find().sort({ createdAt: -1 });
+    
+    // Map the database fields so they perfectly match what your React Admin Dashboard expects
+    const formattedBookings = bookings.map(booking => ({
+        _id: booking._id,
+        name: booking.clientName || 'Unknown Client',
+        phone: booking.userId || 'No phone provided', 
+        email: 'N/A', // Update this if you add email to your schema later
+        serviceName: booking.services && booking.services.length > 0 
+            ? booking.services.map(s => s.name).join(', ') 
+            : 'General Booking',
+        date: booking.date,
+        timeSlot: booking.timeSlot,
+        status: booking.status,
+        notes: `Total: ₹${booking.totalAmount}`
+    }));
+
+    return formattedBookings;
+};
+
+exports.markBookingCompleted = async (id) => {
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+        id, 
+        { status: 'completed' }, 
+        // Replaced { new: true } with the updated Mongoose syntax below:
+        { returnDocument: 'after' } 
+    );
+    
+    return updatedAppointment;
+};

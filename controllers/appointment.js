@@ -66,3 +66,45 @@ exports.getBookedSlots = async (req, res) => {
         });
     }
 };
+
+// Fetch all bookings for the Admin Dashboard
+exports.getAllBookings = async (req, res) => {
+    try {
+        // Calls the service layer to fetch all appointments from MongoDB
+        const bookings = await appointmentService.fetchAllBookings();
+        res.status(200).json(bookings);
+    } catch (error) {
+        console.error("Error fetching admin bookings:", error);
+        res.status(500).json({ error: 'Failed to fetch bookings' });
+    }
+};
+
+// Secure Admin Login Verification
+exports.adminLogin = (req, res) => {
+    const { email, password } = req.body;
+    
+    // Check both email and password against your secure environment variables
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+        res.status(200).json({ success: true, message: 'Authenticated' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+};
+
+exports.markCompleted = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Pass the ID to the service layer to handle the database update
+        const updatedBooking = await appointmentService.markBookingCompleted(id);
+        
+        if (!updatedBooking) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+        
+        res.status(200).json({ success: true, data: updatedBooking });
+    } catch (error) {
+        console.error("Error completing booking:", error);
+        res.status(500).json({ error: 'Failed to update booking status' });
+    }
+};
