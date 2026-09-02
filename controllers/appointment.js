@@ -127,3 +127,21 @@ exports.createManualBooking = async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to save manual booking' });
     }
 };
+
+exports.updateStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // Gets 'in-progress' or 'completed' from React
+        
+        const updatedBooking = await appointmentService.updateBookingStatus(id, status);
+        
+        if (!updatedBooking) {
+            return res.status(404).json({ success: false, message: 'Booking not found' });
+        }
+        
+        res.status(200).json({ success: true, data: updatedBooking });
+    } catch (error) {
+        console.error("Error updating booking status:", error);
+        res.status(500).json({ error: 'Failed to update booking status' });
+    }
+};

@@ -137,3 +137,13 @@ exports.createSilentBooking = async (bookingData) => {
     // Save strictly to DB. No email trigger. No WhatsApp trigger.
     return await appointment.save();
 };
+
+exports.updateBookingStatus = async (id, newStatus) => {
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+        id, 
+        { status: newStatus }, 
+        { returnDocument: 'after' } 
+    );
+    
+    return updatedAppointment;
+};
