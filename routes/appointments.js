@@ -15,4 +15,6 @@ router.post('/admin/login', appointmentController.adminLogin);
 
 router.patch('/bookings/:id/complete', appointmentController.markCompleted);
 
+router.post('/bookings/manual', appointmentController.createManualBooking);
+
 module.exports = router;

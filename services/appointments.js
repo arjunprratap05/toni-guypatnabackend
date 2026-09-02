@@ -117,3 +117,23 @@ exports.markBookingCompleted = async (id) => {
     
     return updatedAppointment;
 };
+
+exports.createSilentBooking = async (bookingData) => {
+    const { userId, clientName, stylistId, services, date, timeSlot, status } = bookingData;
+
+    // Calculate total price if services exist
+    const totalAmount = services ? services.reduce((sum, item) => sum + item.price, 0) : 0;
+
+    const appointment = new Appointment({
+        userId,         // Usually the phone number in your schema
+        clientName, 
+        services: services || [],
+        date,           // e.g., "2026-08-15" (The past date)
+        timeSlot,       // e.g., "11:00 AM - 12:00 PM"
+        totalAmount,
+        status: status || 'completed' // Default to 'completed' for past entries
+    });
+
+    // Save strictly to DB. No email trigger. No WhatsApp trigger.
+    return await appointment.save();
+};

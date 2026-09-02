@@ -108,3 +108,22 @@ exports.markCompleted = async (req, res) => {
         res.status(500).json({ error: 'Failed to update booking status' });
     }
 };
+
+// Silently create a back-dated or manual appointment
+exports.createManualBooking = async (req, res) => {
+    try {
+        const bookingData = req.body;
+        
+        // Call a dedicated silent service
+        const newAppointment = await appointmentService.createSilentBooking(bookingData);
+
+        res.status(201).json({
+            success: true,
+            message: 'Manual entry saved successfully (No notifications sent).',
+            data: newAppointment
+        });
+    } catch (error) {
+        console.error("Error saving manual entry:", error);
+        res.status(500).json({ success: false, error: 'Failed to save manual booking' });
+    }
+};
