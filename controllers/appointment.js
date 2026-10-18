@@ -145,3 +145,29 @@ exports.updateStatus = async (req, res) => {
         res.status(500).json({ error: 'Failed to update booking status' });
     }
 };
+
+let salonStatus = {
+    isForceClosed: false,
+    reason: "",
+    closeUntil: null 
+};
+
+// Logic to GET the status
+exports.getSalonStatus = (req, res) => {
+    if (salonStatus.isForceClosed && salonStatus.closeUntil) {
+        const today = new Date().toISOString().split('T')[0];
+        if (today >= salonStatus.closeUntil) {
+            salonStatus.isForceClosed = false;
+            salonStatus.reason = "";
+            salonStatus.closeUntil = null;
+        }
+    }
+    res.json(salonStatus);
+};
+
+// Logic to UPDATE the status
+exports.updateSalonStatus = (req, res) => {
+    const { isForceClosed, reason, closeUntil } = req.body;
+    salonStatus = { isForceClosed, reason, closeUntil };
+    res.json({ success: true, ...salonStatus });
+};

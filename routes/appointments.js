@@ -19,4 +19,7 @@ router.post('/bookings/manual', appointmentController.createManualBooking);
 
 router.patch('/bookings/:id/status', appointmentController.updateStatus);
 
+router.get('/salon-status', appointmentController.getSalonStatus);
+router.post('/salon-status', appointmentController.updateSalonStatus);
+
 module.exports = router;
