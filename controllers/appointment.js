@@ -1,5 +1,6 @@
 const appointmentService = require('../services/appointments');
 const whatsappService = require('../services/whatsapp'); // <-- 1. Import the WhatsApp service
+const SalonStatus = require('../models/SalonStatus');
 
 exports.createAppointment = async (req, res, next) => {
     try {
@@ -152,22 +153,54 @@ let salonStatus = {
     closeUntil: null 
 };
 
-exports.getSalonStatus = (req, res) => {
-    if (salonStatus.isForceClosed && salonStatus.closeUntil) {
-        const today = new Date().toISOString().split('T')[0];
+exports.getSalonStatus = async (req, res) => {
+    try {
+        // Find the status document in the DB
+        let status = await SalonStatus.findOne();
         
-        // Changed to strictly greater (>) so it doesn't accidentally reset on the same day
-        if (today > salonStatus.closeUntil) {
-            salonStatus.isForceClosed = false;
-            salonStatus.reason = "";
-            salonStatus.closeUntil = null;
+        // If it doesn't exist yet, create a default one
+        if (!status) {
+            status = await SalonStatus.create({ isForceClosed: false, reason: "", closeUntil: null });
         }
+
+        // SMART AUTO-REOPEN LOGIC
+        if (status.isForceClosed && status.closeUntil) {
+            const today = new Date().toISOString().split('T')[0];
+            if (today > status.closeUntil) {
+                status.isForceClosed = false;
+                status.reason = "";
+                status.closeUntil = null;
+                await status.save(); // Save the reopened status back to the DB
+            }
+        }
+
+        res.json(status);
+    } catch (error) {
+        console.error("Error fetching global salon status:", error);
+        res.status(500).json({ error: "Server error" });
     }
-    res.json(salonStatus);
 };
 
-exports.updateSalonStatus = (req, res) => {
-    const { isForceClosed, reason, closeUntil } = req.body;
-    salonStatus = { isForceClosed, reason, closeUntil };
-    res.json({ success: true, ...salonStatus });
+// Logic to UPDATE the global status in MongoDB
+exports.updateSalonStatus = async (req, res) => {
+    try {
+        const { isForceClosed, reason, closeUntil } = req.body;
+        
+        let status = await SalonStatus.findOne();
+        
+        if (!status) {
+            status = await SalonStatus.create({ isForceClosed, reason, closeUntil });
+        } else {
+            // Update existing document
+            status.isForceClosed = isForceClosed;
+            status.reason = reason;
+            status.closeUntil = closeUntil;
+            await status.save();
+        }
+
+        res.json({ success: true, isForceClosed: status.isForceClosed, reason: status.reason, closeUntil: status.closeUntil });
+    } catch (error) {
+        console.error("Error updating global salon status:", error);
+        res.status(500).json({ error: "Server error" });
+    }
 };
