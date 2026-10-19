@@ -152,11 +152,12 @@ let salonStatus = {
     closeUntil: null 
 };
 
-// Logic to GET the status
 exports.getSalonStatus = (req, res) => {
     if (salonStatus.isForceClosed && salonStatus.closeUntil) {
         const today = new Date().toISOString().split('T')[0];
-        if (today >= salonStatus.closeUntil) {
+        
+        // Changed to strictly greater (>) so it doesn't accidentally reset on the same day
+        if (today > salonStatus.closeUntil) {
             salonStatus.isForceClosed = false;
             salonStatus.reason = "";
             salonStatus.closeUntil = null;
@@ -165,7 +166,6 @@ exports.getSalonStatus = (req, res) => {
     res.json(salonStatus);
 };
 
-// Logic to UPDATE the status
 exports.updateSalonStatus = (req, res) => {
     const { isForceClosed, reason, closeUntil } = req.body;
     salonStatus = { isForceClosed, reason, closeUntil };
